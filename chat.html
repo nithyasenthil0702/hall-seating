@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Cauvery Animated Chatbot</title>
+
+<style>
+:root {
+    --primary: #002b5c;
+    --gradient: linear-gradient(135deg, #002b5c, #00509e, #00b4d8);
+    --light-bg: #f4f8fc;
+}
+body {
+    font-family: 'Segoe UI', sans-serif;
+    background: linear-gradient(120deg,#eef2f7,#d9e4f5);
+    animation: pageFade 1s ease;
+}
+@keyframes pageFade { from { opacity:0; } to { opacity:1; } }
+
+.chat-btn {
+    position: fixed;
+    bottom: 25px;
+    right: 25px;
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    border: none;
+    background: var(--gradient);
+    color: white;
+    font-size: 28px;
+    cursor: pointer;
+    box-shadow: 0 15px 35px rgba(0,0,0,0.3);
+    animation: float 3s ease-in-out infinite;
+    transition: all 0.3s ease;
+    z-index: 1000;
+}
+.chat-btn:hover { transform: scale(1.15); }
+@keyframes float { 0%,100%{transform:translateY(0);}50%{transform:translateY(-8px);} }
+
+.notify-dot {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 12px;
+    height: 12px;
+    background: red;
+    border-radius: 50%;
+    animation: blink 1s infinite;
+}
+@keyframes blink { 0%,100%{opacity:1;}50%{opacity:0.3;} }
+
+.chat-window {
+    position: fixed;
+    bottom: 110px;
+    right: 25px;
+    width: 380px;
+    height: 500px;
+    background: rgba(255,255,255,0.85);
+    backdrop-filter: blur(20px);
+    border-radius: 30px;
+    box-shadow: 0 25px 70px rgba(0,0,0,0.35);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transform: scale(0);
+    opacity: 0;
+    transition: all 0.35s ease;
+    z-index: 999;
+}
+.chat-window.active { transform: scale(1); opacity:1; }
+
+.chat-header {
+    background: var(--gradient);
+    background-size: 300% 300%;
+    animation: gradientMove 6s ease infinite;
+    color: white;
+    padding: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.chat-header h3 {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 16px;
+}
+.chat-header img {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+.animated-logo { animation: pulseLogo 2s infinite; }
+@keyframes pulseLogo { 0%,100%{transform:scale(1);}50%{transform:scale(1.1);} }
+@keyframes gradientMove { 0%{background-position:0% 50%;}50%{background-position:100% 50%;}100%{background-position:0% 50%;} }
+.chat-header button { background: transparent; border: none; color: white; font-size: 22px; cursor: pointer; transition: 0.3s; }
+.chat-header button:hover { transform: rotate(90deg); }
+
+.chat-body { flex:1; padding:15px; overflow-y:auto; display:flex; flex-direction:column; gap:12px; background: var(--light-bg); scroll-behavior:smooth; }
+
+.message { max-width:75%; padding:12px 18px; border-radius:25px; font-size:14px; animation: slideUp 0.3s ease forwards; word-wrap:break-word; }
+@keyframes slideUp { from{opacity:0; transform:translateY(15px);} to{opacity:1; transform:translateY(0);} }
+.bot-message { background:#e9f2ff; align-self:flex-start; border-bottom-left-radius:5px; }
+.user-message { background: var(--gradient); color:white; align-self:flex-end; border-bottom-right-radius:5px; }
+
+.chat-input { padding:12px; display:flex; gap:8px; background:white; border-top:1px solid #ddd; }
+.chat-input input { flex:1; padding:10px 15px; border-radius:25px; border:1px solid #ccc; outline:none; transition:0.3s; }
+.chat-input input:focus { border-color:#00509e; box-shadow:0 0 5px rgba(0,80,158,0.5); }
+.chat-input button { border-radius:50%; border:none; padding:10px 14px; background:var(--gradient); color:white; cursor:pointer; transition:0.3s; }
+.chat-input button:hover { transform: scale(1.1); }
+
+.typing { display:flex; gap:5px; }
+.typing span { width:8px; height:8px; background:#888; border-radius:50%; animation:bounce 1.3s infinite; }
+.typing span:nth-child(2){animation-delay:0.2s;} .typing span:nth-child(3){animation-delay:0.4s;}
+@keyframes bounce {0%,80%,100%{transform:scale(0.6);}40%{transform:scale(1);}}
+
+/* Responsive */
+@media(max-width:500px){ .chat-window{ width:95%; right:2.5%; height:80%; } }
+</style>
+</head>
+<body>
+
+<button class="chat-btn" onclick="toggleChat()">💬 <span class="notify-dot"></span></button>
+
+<div class="chat-window" id="chatWindow">
+    <div class="chat-header">
+        <h3>
+            <img src="https://www.cauverycollege.ac.in/Admin/FileFolder/HomePageContent/logo.png" alt="College Logo" class="chat-logo animated-logo" />
+            Cauvery Info-Hub
+        </h3>
+        <button onclick="toggleChat()">×</button>
+    </div>
+    <div class="chat-body" id="chatBody"></div>
+    <div class="chat-input">
+        <input type="text" id="userInput" placeholder="Ask about admissions, fees, HODs..." onkeypress="handleEnter(event)" />
+        <button onclick="sendMessage()">➤</button>
+    </div>
+</div>
+
+<script>
+const knowledgeBase = [
+  { keywords:["hello","hi","hey"], answer:"Hey Champy!✨ Ready to dive into Cauvery info? 🌊" },
+  { keywords:["admission","apply","join"], answer:"Admissions are open! Apply online through the college website. Deadline is May 30th." },
+  { keywords:["fee","fees","cost","price"], answer:"Annual fees range from $4,000 to $6,000 depending on the course." },
+  { keywords:["course","program","study","department","ug","pg"], answer:"We offer B.Sc, B.A, B.Com, BBA, MBA and various PG programs. Visit the 'Academics' tab for full details." },
+  { keywords:["contact","phone","email"], answer:"Phone: 0431-2751232, 4219600 | Mobile: 9487139886 | Email: principal@cauverycollege.ac.in" },
+  { keywords:["hostel","housing","stay"], answer:"Yes, we provide hostel facilities with mess, and also extra classes." },
+  { keywords:["location","where","address"], answer:"Cauvery College Road, Annamalai Nagar, Trichy - 620018, Tamil Nadu, India." },
+  { keywords:["result","exam","date"], answer:"Exam dates are announced on the student portal. Results are published within 3 weeks." },
+  { keywords:["timings","time","college time","lunch hour","lunch break","break","timing"], answer:"College timing: 9:00 AM to 3:05 PM. Lunch break: 12:00 PM to 1:15 PM." },
+  { keywords:["dress","dress code"], answer:"Dress code: Traditional wear or Formals only." },
+  { keywords:["facility","facilities","placement","extra curricular activities","culturals","edc","sports"], answer:"Facilities include labs, sports, cultural activities, department clubs, Entrepreneurship cell and placement support. Visit the website for full details." },
+
+  // HODs
+  { keywords:["english hod"], answer:"English Department HOD: Dr. R. Uma Maheswari, M.A., M.Phil., Ph.D., Associate Professor & Head." },
+  { keywords:["mathematics hod","maths hod"], answer:"Mathematics Department HOD: Dr. S. Premalatha, M.Sc., M.Phil., Ph.D., Professor & Head." },
+  { keywords:["social work hod"], answer:"Social Work Department HOD: Dr. G. Mettilda Buvaneswari, M.A.(SW), M.Phil., Ph.D., Associate Professor & Head." },
+  { keywords:["commerce hod"], answer:"Commerce Department HOD: Dr. N. Savithri, M.Com., M.Phil., SLET, Ph.D., Professor & Head." },
+  { keywords:["bba hod"], answer:"BBA Department HOD: Dr. S. Thamarai Selvi, MBA., M.A., M.Phil., Ph.D., Associate Professor & Head." },
+  { keywords:["physics hod"], answer:"Physics Department HOD: Dr. G. Maheswari, M.Sc., M.Phil., Ph.D., Professor & Head." },
+  { keywords:["chemistry hod"], answer:"Chemistry Department HOD: Dr. P. Pungayee Alias Amirtham, M.Sc., M.Phil., Ph.D., IQAC Co-Ordinator, Professor & Head." },
+  { keywords:["microbiology hod"], answer:"Microbiology Department HOD: Dr. B. Thamilmaraiselvi, M.Sc., B.Ed., SLET, M.Phil., Ph.D., Professor & Head." },
+  { keywords:["biotechnology hod"], answer:"Biotechnology Department HOD: Dr. R. Rameshwari, M.Sc., M.Phil., Ph.D., SET, Associate Professor & Head." },
+  { keywords:["food service management hod","nutrition and dietetics","nnd"], answer:"Food Service Management Department HOD: Dr. B. Thanuja, M.Sc., M.Phil., Ph.D., SET, Professor & Head." },
+  { keywords:["computer applications hod","bca"], answer:"Computer Applications Department HOD: Dr. R. Merlin Packiam, MCA., M.Phil., NET, Ph.D., Professor & Head." },
+  { keywords:["computer science hod","cs hod"], answer:"Computer Science Department HOD: Dr. V. Sinthu Janita, M.C.A., M.Phil., Ph.D., Dean of Science, Professor & Head." },
+  { keywords:["information technology hod","it hod"], answer:"Information Technology Department HOD: Dr. M. Parveen, MCA., M.Phil., Ph.D., Dean of Alumnae, Professor & Head." },
+
+  // Special events
+  { keywords:["nptel","nptel exam","mandatory exam","degree eligibility","online certification"],
+    answer:"NPTEL examination is mandatory for all students. Every student must pass to be eligible for the degree." },
+  { keywords:["alumnae day","jan 26","celebration","dean of alumnae","alumnae","dr parveen"],
+    answer:"Every year on January 26, Cauvery College celebrates Alumnae Day. Dean of Alumnae and Department HOD is Dr. M. Parveen." }
+];
+
+const fallbackAnswer = "Sorry, I couldn't find that information. Please contact the office admin for more details.";
+const chatWindow = document.getElementById('chatWindow');
+const chatBody = document.getElementById('chatBody');
+const userInput = document.getElementById('userInput');
+
+function toggleChat(){ chatWindow.classList.toggle("active"); }
+function handleEnter(e){ if(e.key==="Enter") sendMessage(); }
+
+function sendMessage(){
+  const text = userInput.value.trim();
+  if(!text) return;
+  addMessage("user", text);
+  userInput.value = "";
+
+  const typingDiv = document.createElement("div");
+  typingDiv.className = "message bot-message typing";
+  typingDiv.innerHTML = "<span></span><span></span><span></span>";
+  chatBody.appendChild(typingDiv);
+  chatBody.scrollTop = chatBody.scrollHeight;
+
+  setTimeout(()=>{
+    typingDiv.remove();
+    addMessage("bot", getBotResponse(text));
+  },1000);
+}
+
+function addMessage(sender, text){
+  const div = document.createElement("div");
+  div.className = "message " + (sender==="user"?"user-message":"bot-message");
+  div.innerText = text;
+  chatBody.appendChild(div);
+  chatBody.scrollTop = chatBody.scrollHeight;
+}
+
+function getBotResponse(input){
+  input = input.toLowerCase();
+  for(let item of knowledgeBase){
+    for(let keyword of item.keywords){
+      if(input.includes(keyword.toLowerCase())) return item.answer;
+    }
+  }
+  return fallbackAnswer;
+}
+
+// Auto welcome message
+window.onload = ()=>{
+  setTimeout(()=>{
+    addMessage("bot","🤚🏻 Welcome to Cauvery College Info Hub! Where information flows as smoothly as the Cauvery river. How can I help you?");
+  },800);
+};
+</script>
+
+</body>
+</html>
