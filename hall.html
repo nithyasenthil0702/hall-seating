@@ -1,0 +1,1491 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5, user-scalable=yes">
+<title>Event & Hall Management – Google Sheets connected</title>
+<style>
+/* ========== YOUR EXACT STYLES (unchanged) ========== */
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+body{
+    /* vibrant gradient */
+    background: linear-gradient(135deg, #FF512F, #DD2476, #FFD194, #70e1f5);
+    padding:20px 10px;
+    animation: gradientBG 12s ease infinite;
+    background-size: 400% 400%;
+}
+
+@keyframes gradientBG {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+.container{
+    max-width:1100px;
+    margin:auto;
+}
+
+.card{
+    background:#FFFFFF;
+    padding:25px;
+    border-radius:15px;
+    box-shadow:0 15px 35px rgba(0,0,0,.15);
+    margin-bottom:30px;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    animation: float 6s ease-in-out infinite;
+}
+@keyframes float {
+    0% { transform: translateY(0px); }
+    50% { transform: translateY(-5px); }
+    100% { transform: translateY(0px); }
+}
+.card:hover {
+    transform: translateY(-5px) scale(1.01);
+    box-shadow:0 20px 40px rgba(0,0,0,.2);
+}
+
+h2{
+    text-align:center;
+    margin-bottom:25px;
+    color: #023E8A;
+    font-size:1.8rem;
+    text-shadow: 2px 2px 4px rgba(255,255,255,0.5);
+}
+
+.required{color:red;}
+
+/* Step indicator */
+.step-indicator {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 25px;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+.step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    color: #aaa;
+    font-weight: 600;
+    font-size:0.9rem;
+    transition: color 0.3s;
+}
+.step.active {
+    color: #DD2476;
+}
+.step .step-number {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: #ffe0f0;
+    color: #DD2476;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    margin-bottom: 5px;
+    transition: 0.3s;
+    animation: pulse 2s infinite;
+}
+@keyframes pulse {
+    0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(221,36,118,0.4); }
+    70% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(221,36,118,0); }
+    100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(221,36,118,0); }
+}
+.step.active .step-number {
+    background: #DD2476;
+    color: white;
+    box-shadow: 0 4px 10px rgba(221,36,118,0.5);
+}
+
+/* Steps containers */
+.step-panel {
+    display: none;
+}
+.step-panel.active-panel {
+    display: block;
+    animation: fadeIn 0.5s;
+}
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* View Bookings button */
+.view-bookings-btn {
+    display: flex;
+    justify-content: center;
+    margin: 20px 0;
+}
+.view-btn {
+    background: #FF512F;
+    color: white;
+    border: none;
+    padding: 10px 25px;
+    border-radius: 30px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.2s;
+    font-size:0.95rem;
+    box-shadow: 0 4px 10px rgba(255,81,47,0.4);
+}
+.view-btn:hover {
+    background: #DD2476;
+    transform: scale(1.02) rotate(1deg);
+}
+
+/* Bookings list container */
+.bookings-list {
+    background: #f9f9ff;
+    border: 2px dashed #DD2476;
+    border-radius: 12px;
+    padding: 20px;
+    margin: 20px 0;
+    display: none;
+    animation: fadeIn 0.3s;
+}
+.bookings-list.show {
+    display: block;
+}
+.bookings-list h3 {
+    margin-bottom: 15px;
+    color: #333;
+    font-size:1.2rem;
+}
+.bookings-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size:0.9rem;
+}
+.bookings-table th, .bookings-table td {
+    border: 1px solid #ccc;
+    padding: 8px;
+    text-align: left;
+}
+.bookings-table th {
+    background: #ffe0f0;
+}
+.bookings-list .close-btn {
+    background: #023E8A;
+    color: white;
+    border: none;
+    padding: 5px 15px;
+    border-radius: 20px;
+    cursor: pointer;
+    float: right;
+    margin-top: -10px;
+}
+.bookings-list .close-btn:hover {
+    background: #DD2476;
+}
+
+/* ---------- filter grid for bookings history ---------- */
+.filter-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+    margin: 20px 0 15px 0;
+    align-items: end;
+}
+.filter-grid .field {
+    margin-bottom: 0;
+}
+.filter-buttons {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    grid-column: span 1;
+}
+.filter-btn {
+    background: #DD2476;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 30px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.2s;
+    font-size:0.85rem;
+    box-shadow: 0 2px 6px rgba(221,36,118,0.4);
+    height: 38px;
+    white-space: nowrap;
+}
+.filter-btn.reset {
+    background: #6c757d;
+}
+.filter-btn:hover {
+    transform: scale(1.02);
+    filter: brightness(1.1);
+}
+@media (max-width:600px){
+    .filter-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+    .filter-buttons {
+        grid-column: span 2;
+        justify-content: center;
+    }
+}
+/* ------------------------------------------------- */
+
+.form-grid{
+    display:grid;
+    grid-template-columns:repeat(2,1fr);
+    gap:15px;
+}
+
+.date-time-row{
+    grid-column:1/-1;
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:15px;
+    align-items: end;
+}
+
+.field{
+    display:flex;
+    flex-direction:column;
+}
+
+label{
+    font-size:13px;
+    font-weight:600;
+    margin-bottom:6px;
+    color:#444;
+}
+
+input, textarea, select {
+    padding:10px;
+    border:1px solid #ccc;
+    border-radius:6px;
+    font-size:14px;
+    width:100%;
+    transition: border 0.2s, box-shadow 0.2s, transform 0.2s, background 0.2s;
+    background: white;
+}
+input:focus, textarea:focus, select:focus {
+    border-color: #DD2476;
+    box-shadow: 0 0 0 3px rgba(221,36,118,0.2);
+    outline: none;
+    transform: scale(1.02);
+    background: #fff9fc;
+}
+
+textarea{
+    resize:none;
+    height:80px;
+}
+
+.error{
+    color:red;
+    font-size:12px;
+    margin-top:4px;
+    display:none;
+}
+
+.section-box{
+    padding:15px;
+    border-radius:10px;
+    background:#ffe0f0;
+    border:1px solid #ffb3d1;
+    transition: background 0.2s, transform 0.2s, box-shadow 0.2s;
+}
+.section-box:hover {
+    background: #ffc9e0;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 16px rgba(221,36,118,0.15);
+}
+
+.section-title{
+    font-weight:600;
+    margin-bottom:12px;
+    color: #023E8A;
+    font-size:1rem;
+}
+
+.radio-group{
+    display:grid;
+    grid-template-columns:repeat(2,1fr);
+    gap:10px 20px;
+}
+
+.radio-group label{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    cursor:pointer;
+    font-size:0.95rem;
+}
+
+.radio-group input{
+    width:auto;
+}
+
+.toggle-buttons{
+    display:flex;
+    gap:8px;
+    margin-bottom:12px;
+}
+
+.toggle-buttons button{
+    flex:1;
+    padding:8px 5px;
+    border:none;
+    background:#e0e4ff;
+    border-radius:6px;
+    cursor:pointer;
+    font-weight:600;
+    transition: all 0.2s;
+    font-size:0.9rem;
+}
+.toggle-buttons button:hover {
+    background: #cbd0ff;
+    transform: scale(1.02);
+}
+.toggle-buttons button.active{
+    background: #DD2476;
+    color:white;
+}
+
+.options-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+    gap:8px;
+}
+
+.options-grid input{display:none;}
+
+.options-grid label{
+    padding:6px;
+    background:#fff;
+    border:1px solid #ccc;
+    border-radius:6px;
+    text-align:center;
+    cursor:pointer;
+    transition: all 0.2s;
+    font-size:0.9rem;
+}
+.options-grid label:hover {
+    border-color: #DD2476;
+    background: #ffe0f0;
+    transform: scale(1.02);
+}
+.options-grid input:checked + label{
+    background: #DD2476;
+    color:white;
+    border-color: #DD2476;
+}
+
+/* Hall selection cards */
+.hall-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px;
+    margin-top: 10px;
+}
+.hall-card {
+    position: relative;
+    animation: fadeInUp 0.5s ease backwards;
+    animation-delay: calc(0.1s * var(--i, 1));
+}
+.hall-card:nth-child(1) { --i: 1; }
+.hall-card:nth-child(2) { --i: 2; }
+.hall-card:nth-child(3) { --i: 3; }
+.hall-card:nth-child(4) { --i: 4; }
+.hall-card:nth-child(5) { --i: 5; }
+
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(15px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.hall-card input[type="radio"] {
+    display: none;
+}
+.hall-card label {
+    display: block;
+    background: white;
+    border: 2px solid #e0e4ff;
+    border-radius: 10px;
+    padding: 10px 5px 5px 5px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-align: center;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.03);
+}
+.hall-card input[type="radio"]:checked + label {
+    border-color: #DD2476;
+    background: #ffe0f0;
+    transform: scale(1.01) translateY(-2px);
+    box-shadow: 0 10px 20px rgba(221,36,118,0.3), 0 0 0 2px rgba(221,36,118,0.2);
+}
+.hall-photo {
+    width: 100%;
+    height: 80px;
+    background: linear-gradient(145deg, #FF512F, #DD2476);
+    border-radius: 6px;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
+    font-size: 13px;
+    box-shadow: inset 0 2px 5px rgba(0,0,0,0.1);
+    transition: transform 0.3s ease;
+}
+.hall-card label:hover .hall-photo {
+    transform: perspective(200px) rotateX(2deg) scale(1.02);
+}
+.hall-name {
+    font-weight: 700;
+    font-size: 1rem;
+    color: #333;
+}
+.hall-capacity, .hall-location {
+    font-size: 0.75rem;
+    color: #666;
+    margin: 3px 0;
+}
+.hall-location i {
+    font-style: normal;
+    background: #e8ecff;
+    padding: 2px 4px;
+    border-radius: 30px;
+    display: inline-block;
+}
+.hall-card input[type="radio"]:checked + label .hall-location i {
+    background: #ffe0f0;
+}
+.hall-facilities {
+    font-size: 0.7rem;
+    color: #444;
+    margin-top: 3px;
+    background: #f4f6ff;
+    padding: 2px 4px;
+    border-radius: 15px;
+    display: inline-block;
+}
+
+.hidden{display:none;}
+
+/* Navigation buttons */
+.nav-buttons {
+    display: flex;
+    justify-content: center;
+    margin-top: 25px;
+}
+.nav-btn {
+    padding: 10px 25px;
+    border: none;
+    border-radius: 6px;
+    background: #FF512F;
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.2s;
+    margin: 0 8px;
+    font-size:1rem;
+    box-shadow: 0 4px 10px rgba(255,81,47,0.4);
+}
+.nav-btn:hover {
+    background: #DD2476;
+    transform: scale(1.02) rotate(-1deg);
+}
+.nav-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.main-btn{
+    padding:12px 25px;
+    border:none;
+    border-radius:6px;
+    background:#DD2476;
+    color:white;
+    font-weight:600;
+    cursor:pointer;
+    transition: background 0.2s, transform 0.1s, box-shadow 0.2s;
+    box-shadow: 0 4px 10px rgba(221,36,118,0.4);
+    font-size:1rem;
+}
+.main-btn:hover {
+    background: #FF512F;
+    transform: scale(1.02);
+    box-shadow: 0 8px 18px rgba(255,81,47,0.5);
+}
+.main-btn:active {
+    transform: scale(0.98);
+}
+
+.main-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background: #aaa;
+    box-shadow: none;
+}
+.main-btn:disabled:hover {
+    transform: none;
+    background: #aaa;
+}
+
+/* Summary area */
+.summary{
+    background:#fff;
+    padding:20px;
+    border-radius:10px;
+    margin-top:20px;
+    box-shadow:0 10px 25px rgba(0,0,0,.1);
+    animation: slideUp 0.5s ease, summaryGlow 4s infinite alternate;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+@keyframes slideUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+@keyframes summaryGlow {
+    from { border-left: 5px solid #FF512F; }
+    to { border-left: 5px solid #DD2476; }
+}
+.summary-table{
+    width:100%;
+    border-collapse:collapse;
+    margin-bottom: 15px;
+    word-break: break-word;
+}
+
+.summary-table th,
+.summary-table td{
+    border:1px solid #ddd;
+    padding:8px;
+    font-size:0.9rem;
+}
+.summary-table th{
+    background:#ffe0f0;
+    width:30%;
+    text-align:left;
+}
+.print-btn {
+    background: #667eea;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 30px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: background 0.2s, transform 0.2s;
+    font-size:0.9rem;
+}
+.print-btn:hover {
+    background: #5a6fd1;
+    transform: scale(1.05);
+}
+
+/* New: date check button and panel */
+.check-date-btn {
+    background: #ff9800;
+    color: white;
+    border: none;
+    padding: 10px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size:0.9rem;
+    transition: 0.2s;
+    white-space: nowrap;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    height: 40px;
+    margin-bottom: 2px;
+}
+.check-date-btn:hover {
+    background: #f57c00;
+    transform: scale(1.02) rotate(0.5deg);
+}
+.date-bookings-panel {
+    background: #e8f0fe;
+    border: 1px solid #DD2476;
+    border-radius: 8px;
+    padding: 15px;
+    margin-top: 10px;
+    display: none;
+    max-height: 300px;
+    overflow-y: auto;
+}
+.date-bookings-panel.show {
+    display: block;
+}
+.date-bookings-panel h4 {
+    margin-bottom: 10px;
+    color: #023E8A;
+}
+.date-bookings-panel table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size:0.85rem;
+}
+.date-bookings-panel th, .date-bookings-panel td {
+    border: 1px solid #b3e0f0;
+    padding: 6px;
+    text-align: left;
+}
+.date-bookings-panel th {
+    background: #ffe0f0;
+}
+
+/* Enhanced celebration animation */
+.celebrate {
+    animation: pop 0.6s ease-out, glowPulse 0.6s ease-out;
+}
+@keyframes pop {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.15); }
+    80% { transform: scale(0.95); }
+    100% { transform: scale(1); }
+}
+@keyframes glowPulse {
+    0% { box-shadow: 0 0 0 0 rgba(221,36,118,0.7); }
+    50% { box-shadow: 0 0 30px 10px rgba(221,36,118,0.5); }
+    100% { box-shadow: 0 0 0 0 rgba(221,36,118,0); }
+}
+
+.unavailable-msg {
+    color: #d32f2f;
+    background: #ffebee;
+    padding: 10px;
+    border-radius: 8px;
+    margin: 10px 0;
+    font-weight: 500;
+    text-align: center;
+    animation: shake 0.4s;
+}
+@keyframes shake {
+    0%,100%{ transform: translateX(0); }
+    20%{ transform: translateX(-5px); }
+    40%{ transform: translateX(5px); }
+    60%{ transform: translateX(-3px); }
+    80%{ transform: translateX(3px); }
+}
+.success-msg {
+    background: #4caf50;
+    color: white;
+    padding: 10px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    text-align: center;
+    font-weight: bold;
+}
+.availability-msg {
+    margin: 10px 0;
+    padding: 8px;
+    border-radius: 6px;
+    font-weight: 500;
+    text-align: center;
+}
+.availability-msg.available {
+    background: #e8f5e9;
+    color: #2e7d32;
+}
+.availability-msg.unavailable {
+    background: #ffebee;
+    color: #c62828;
+}
+
+/* Hall details box - only text, no visual seat grid */
+.hall-details-box {
+    margin-top: 20px;
+    padding: 15px;
+    background: #fcf0f7;
+    border-radius: 10px;
+    border: 1px solid #DD2476;
+    display: none;
+    animation: fadeIn 0.3s;
+}
+.hall-details-box.show {
+    display: block;
+}
+.hall-details-box h4 {
+    margin-bottom: 10px;
+    color: #333;
+    font-size:1rem;
+}
+.detail-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 8px 0;
+    font-size: 0.95rem;
+}
+.detail-item i {
+    font-style: normal;
+    background: #ffe0f0;
+    padding: 4px 8px;
+    border-radius: 20px;
+}
+
+/* PRINT STYLES */
+@media print {
+    body * {
+        visibility: hidden;
+    }
+    .summary, .summary * {
+        visibility: visible;
+    }
+    .summary {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        margin: 0;
+        padding: 20px;
+        background: white;
+        box-shadow: none;
+        z-index: 9999;
+        overflow: visible;
+    }
+    .summary-table th, .summary-table td {
+        border: 1px solid #000 !important;
+    }
+    .print-btn, .main-btn, .nav-buttons, .step-indicator, .hall-details-box, .view-bookings-btn, .bookings-list, .availability-msg, .check-date-btn, .date-bookings-panel {
+        display: none !important;
+    }
+}
+
+@media(max-width:600px){
+    .card{
+        padding:18px;
+    }
+    .form-grid,
+    .date-time-row{
+        grid-template-columns:1fr;
+    }
+    .radio-group{
+        grid-template-columns:1fr;
+    }
+    .step-indicator {
+        gap: 10px;
+    }
+    .step .step-number {
+        width: 30px;
+        height: 30px;
+    }
+    .summary-table th, .summary-table td {
+        padding:6px;
+        font-size:0.8rem;
+    }
+    .hall-grid {
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    }
+    .hall-photo {
+        height: 70px;
+    }
+    h2{
+        font-size:1.5rem;
+    }
+}
+
+/* ========== ADDITIONAL SUBTLE ANIMATIONS ========== */
+body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    background: radial-gradient(circle at 20% 30%, rgba(255,255,255,0.15) 0%, transparent 12%),
+                radial-gradient(circle at 80% 70%, rgba(255,215,0,0.1) 0%, transparent 18%),
+                radial-gradient(circle at 40% 80%, rgba(221,36,118,0.1) 0%, transparent 22%),
+                radial-gradient(circle at 90% 20%, rgba(255,81,47,0.1) 0%, transparent 28%);
+    background-size: 250% 250%;
+    animation: particleMove 22s ease infinite;
+    z-index: 0;
+}
+
+@keyframes particleMove {
+    0% { background-position: 0% 0%; }
+    50% { background-position: 100% 100%; }
+    100% { background-position: 0% 0%; }
+}
+
+.container {
+    position: relative;
+    z-index: 1;
+}
+
+.view-btn {
+    animation: softPulse 3s infinite;
+}
+@keyframes softPulse {
+    0% { box-shadow: 0 4px 10px rgba(255,81,47,0.3); }
+    50% { box-shadow: 0 4px 20px rgba(255,81,47,0.6); }
+    100% { box-shadow: 0 4px 10px rgba(255,81,47,0.3); }
+}
+
+.main-btn:hover, .nav-btn:hover, .print-btn:hover, .filter-btn:hover, .check-date-btn:hover {
+    animation: buttonShine 0.8s ease;
+}
+@keyframes buttonShine {
+    0% { filter: brightness(1); }
+    50% { filter: brightness(1.15); }
+    100% { filter: brightness(1); }
+}
+
+.hall-card label:hover {
+    animation: cardGlow 2s infinite alternate;
+}
+@keyframes cardGlow {
+    from { box-shadow: 0 4px 12px rgba(221,36,118,0.2); }
+    to { box-shadow: 0 8px 24px rgba(221,36,118,0.4); }
+}
+
+.radio-group label:hover, .options-grid label:hover {
+    animation: labelPop 0.3s ease;
+}
+@keyframes labelPop {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.02); }
+    100% { transform: scale(1); }
+}
+
+.step.active .step-number {
+    animation: activeStepGlow 2s infinite alternate;
+}
+@keyframes activeStepGlow {
+    from { box-shadow: 0 0 5px #DD2476; }
+    to { box-shadow: 0 0 15px #DD2476; }
+}
+
+.date-bookings-panel.show {
+    animation: panelPop 0.3s ease-out;
+}
+@keyframes panelPop {
+    0% { opacity: 0; transform: scale(0.95); }
+    100% { opacity: 1; transform: scale(1); }
+}
+
+.celebrate {
+    animation: pop 0.6s ease-out, glowPulse 0.6s ease-out, sparkle 1s ease-out;
+}
+@keyframes sparkle {
+    0% { filter: brightness(1); }
+    25% { filter: brightness(1.1); }
+    50% { filter: brightness(1); }
+    75% { filter: brightness(1.05); }
+    100% { filter: brightness(1); }
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+<div class="card">
+
+<h2>🎓 Hall Booking (Google Sheets)</h2>
+
+<!-- Step Indicator -->
+<div class="step-indicator">
+    <div class="step active" id="step1Indicator"><span class="step-number">1</span><span>Basic Details</span></div>
+    <div class="step" id="step2Indicator"><span class="step-number">2</span><span>Select Hall</span></div>
+    <div class="step" id="step3Indicator"><span class="step-number">3</span><span>Confirmation</span></div>
+</div>
+
+<!-- View All Booked Events Button -->
+<div class="view-bookings-btn">
+    <button class="view-btn" onclick="toggleBookingsList()">📋 View All Booked Events</button>
+</div>
+
+<!-- Bookings List Container with filter -->
+<div id="bookingsListContainer" class="bookings-list">
+    <button class="close-btn" onclick="toggleBookingsList()">✕ Close</button>
+    <h3>📅 Previous Event Bookings</h3>
+    <div class="filter-grid">
+        <div class="field"><label>Filter by Date</label><input type="date" id="filterDate"></div>
+        <div class="field"><label>Time From</label><input type="time" id="filterTimeFrom"></div>
+        <div class="field"><label>Time To</label><input type="time" id="filterTimeTo"></div>
+        <div class="field"><label>Hall</label><select id="filterHall"><option value="">All Halls</option></select></div>
+        <div class="filter-buttons">
+            <button class="filter-btn" onclick="applyFilters()">Apply</button>
+            <button class="filter-btn reset" onclick="resetFilters()">Reset</button>
+        </div>
+    </div>
+    <div style="overflow-x: auto;">
+        <table class="bookings-table" id="bookingsTable">
+            <thead><tr><th>Hall</th><th>Date</th><th>From</th><th>To</th></tr></thead>
+            <tbody id="bookingsTableBody"></tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Step 1 Panel (Basic Details) -->
+<div id="step1" class="step-panel active-panel">
+    <div class="form-grid">
+        <div class="date-time-row">
+            <div class="field"><label>Event Date *</label><input type="date" id="eventDate"><div class="error" id="dateError">Required</div></div>
+            <div class="field"><label>Time From *</label><input type="time" id="timeFrom"><div class="error" id="fromError">Required</div></div>
+            <div class="field"><label>Time To *</label><input type="time" id="timeTo"><div class="error" id="toError">Required</div></div>
+            <div class="field" style="justify-content: flex-end;"><label style="visibility:hidden;">Check</label><button class="check-date-btn" onclick="toggleDateBookings()">📅 Check Date</button></div>
+        </div>
+        <div id="dateBookingsPanel" class="date-bookings-panel" style="grid-column:1/-1;">
+            <h4>Bookings on <span id="selectedDateDisplay"></span></h4>
+            <div id="dateBookingsContent">Select a date and click "Check Date".</div>
+        </div>
+        <div class="field"><label>Event Name *</label><input type="text" id="eventName"><div class="error" id="eventNameError">Required</div></div>
+        <div class="field"><label>Audience Capacity *</label><input type="number" id="audienceCapacity"><div class="error" id="capacityError">Required</div></div>
+        <div class="section-box"><div class="section-title">Select Audience Degree *</div><div class="radio-group"><label><input type="radio" name="degree" value="UG"> UG</label><label><input type="radio" name="degree" value="PG"> PG</label><label><input type="radio" name="degree" value="UG & PG"> UG & PG</label><label><input type="radio" name="degree" value="Others"> Others</label></div><div class="error" id="degreeError">Required</div></div>
+        <div class="section-box"><div class="section-title">Select conducting Department *</div><div class="radio-group"><label><input type="radio" name="department" value="Tamil"> Tamil</label><label><input type="radio" name="department" value="English"> English</label><label><input type="radio" name="department" value="Commerce"> Commerce</label><label><input type="radio" name="department" value="Social Work"> Social Work</label><label><input type="radio" name="department" value="Business Administration"> Business Administration</label><label><input type="radio" name="department" value="Mathematics"> Mathematics</label><label><input type="radio" name="department" value="Physics"> Physics</label><label><input type="radio" name="department" value="Chemistry"> Chemistry</label><label><input type="radio" name="department" value="Computer Science"> Computer Science</label><label><input type="radio" name="department" value="Computer Applications"> Computer Applications</label><label><input type="radio" name="department" value="Information Technology"> Information Technology</label><label><input type="radio" name="department" value="Microbiology"> Microbiology</label><label><input type="radio" name="department" value="Biotechnology"> Biotechnology</label><label><input type="radio" name="department" value="Food Service Management & Dietetics"> Food Service Management & Dietetics</label></div><div class="error" id="departmentError">Required</div></div>
+        <div class="section-box"><div class="section-title">Upload Invitation *</div><input type="file" id="documentUpload"><div class="error" id="documentError">Required</div></div>
+        <div class="section-box" style="grid-column:1/-1;"><div class="section-title">Select a Type</div><div class="toggle-buttons"><button type="button" id="clubBtn" class="active" onclick="showClub()">Clubs</button><button type="button" id="otherBtn" onclick="showOther()">Associations</button></div>
+            <div id="clubSection" class="options-grid"><input type="radio" name="club" id="c1" value="Bharathi Tamil Mandram" checked><label for="c1">Bharathi Tamil Mandram</label><input type="radio" name="club" id="c2" value="Aurora Club"><label for="c2">Aurora Club</label><input type="radio" name="club" id="c3" value="Busybee Club"><label for="c3">Busybee Club</label><input type="radio" name="club" id="c4" value="Amity Club"><label for="c4">Amity Club</label><input type="radio" name="club" id="c5" value="Synergy Club"><label for="c5">Synergy Club</label><input type="radio" name="club" id="c6" value="Bomac Club"><label for="c6">Bomac Club</label><input type="radio" name="club" id="c7" value="Hale Bopp Club"><label for="c7">Hale Bopp Club</label><input type="radio" name="club" id="c8" value="Chemstar Club"><label for="c8">Chemstar Club</label><input type="radio" name="club" id="c9" value="Comphaiven Club"><label for="c9">Comphaiven Club</label><input type="radio" name="club" id="c10" value="Abacus Club"><label for="c10">Abacus Club</label><input type="radio" name="club" id="c11" value="Innova Club"><label for="c11">Innova Club</label><input type="radio" name="club" id="c12" value="Jenner’s Club"><label for="c12">Jenner’s Club</label><input type="radio" name="club" id="c13" value="Bolivar’s Club"><label for="c13">Bolivar’s Club</label><input type="radio" name="club" id="c14" value="Hospitality Club"><label for="c14">Hospitality Club</label></div>
+            <div id="otherSection" class="options-grid hidden"><input type="radio" name="club" id="c15" value="Athletic Association"><label for="c15">Athletic Association</label><input type="radio" name="club" id="c16" value="National Service Scheme"><label for="c16">National Service Scheme</label><input type="radio" name="club" id="c17" value="Wings Club"><label for="c17">Wings Club</label><input type="radio" name="club" id="c18" value="Rotaract Club and Leo Club"><label for="c18">Rotaract Club and Leo Club</label><input type="radio" name="club" id="c19" value="Ideation Club"><label for="c19">Ideation Club</label><input type="radio" name="club" id="c20" value="Innovation Club"><label for="c20">Innovation Club</label><input type="radio" name="club" id="c21" value="Startup Club"><label for="c21">Startup Club</label><input type="radio" name="club" id="c22" value="IPR Cell"><label for="c22">IPR Cell</label><input type="radio" name="club" id="c23" value="Students’ ExNoRa Club"><label for="c23">Students’ ExNoRa Club</label><input type="radio" name="club" id="c24" value="Blood Donor’s Club"><label for="c24">Blood Donor’s Club</label><input type="radio" name="club" id="c25" value="Red Ribbon Club"><label for="c25">Red Ribbon Club</label><input type="radio" name="club" id="c26" value="N.C.C."><label for="c26">N.C.C.</label><input type="radio" name="club" id="c27" value="Junior JCI"><label for="c27">Junior JCI</label><input type="radio" name="club" id="c28" value="Quiz Club"><label for="c28">Quiz Club</label><input type="radio" name="club" id="c29" value="Water Environment Students’ Club"><label for="c29">Water Environment Students’ Club</label><input type="radio" name="club" id="c30" value="Road Safety Club"><label for="c30">Road Safety Club</label><input type="radio" name="club" id="c31" value="Gender Champion Club"><label for="c31">Gender Champion Club</label><input type="radio" name="club" id="c32" value="Citizen Consumer Club"><label for="c32">Citizen Consumer Club</label><input type="radio" name="club" id="c33" value="Health Club"><label for="c33">Health Club</label><input type="radio" name="club" id="c34" value="Youth Red Cross"><label for="c34">Youth Red Cross</label><input type="radio" name="club" id="c35" value="Legal Literacy Club"><label for="c35">Legal Literacy Club</label><input type="radio" name="club" id="c36" value="Centre for Women’s Studies"><label for="c36">Centre for Women’s Studies</label><input type="radio" name="club" id="c37" value="Anti Drug Abuse Club"><label for="c37">Anti Drug Abuse Club</label></div>
+        </div>
+        <div class="field" style="grid-column:1/-1;"><label>Resource Person Details *</label><textarea id="resourcePerson"></textarea><div class="error" id="resourceError">Required</div></div>
+        <div class="field"><label>Staff Incharge Name *</label><input type="text" id="staffName"><div class="error" id="staffNameError">Required</div></div>
+        <div class="field"><label>Staff Phone Number *</label><input type="text" id="staffPhone" maxlength="10"><div class="error" id="staffPhoneError">Enter valid 10 digit number</div></div>
+        <div class="field"><label>Student Incharge Name *</label><input type="text" id="studentName"><div class="error" id="studentNameError">Required</div></div>
+        <div class="field"><label>Student Phone Number *</label><input type="text" id="studentPhone" maxlength="10"><div class="error" id="studentPhoneError">Enter valid 10 digit number</div></div>
+    </div>
+    <div class="nav-buttons"><button class="nav-btn" onclick="goToStep2()">Next →</button></div>
+</div>
+
+<!-- Step 2 Panel (Hall Selection & Summary) -->
+<div id="step2" class="step-panel">
+    <div class="section-box" style="margin-bottom:20px;">
+        <div class="section-title">Select a Hall <span class="required">*</span></div>
+        <div class="hall-grid" id="hallContainer"></div>
+        <div class="error" id="hallError">Please select a hall</div>
+        <div style="text-align: center; margin-top: 15px;">
+            <button class="print-btn" style="background:#ff9800;" onclick="showHallDetails()" id="detailsBtn" disabled>🏛️ View Hall Details</button>
+        </div>
+        <div id="hallDetailsBox" class="hall-details-box"><h4>Hall Facilities & Info</h4><div id="hallDetailsContent"></div></div>
+    </div>
+    <div style="text-align:center; margin:20px 0;">
+        <button class="main-btn" onclick="generateSummary()">Generate Event Summary</button>
+    </div>
+    <div class="summary" id="summary">No Event Created Yet</div>
+    <div class="nav-buttons"><button class="nav-btn" onclick="goToStep1()">← Back</button></div>
+</div>
+
+<!-- Step 3 Panel (Final Success Message with full summary) -->
+<div id="step3" class="step-panel">
+    <div class="summary" style="text-align: center; padding: 30px 15px;" id="successSummary">
+        <div style="font-size: 4rem; margin-bottom: 20px;">🎉</div>
+        <h3 style="color: #4caf50; margin-bottom: 20px;">Hall Booked Successfully!</h3>
+        <!-- Full event summary will be inserted here -->
+        <div id="finalBookingMessage" class="summary-table" style="margin: 20px auto; max-width: 100%;"></div>
+        <button class="print-btn" onclick="window.print()" style="margin: 10px;">🖨️ Print Full Summary</button>
+    </div>
+</div>
+
+</div> <!-- end card -->
+</div> <!-- end container -->
+
+<script>
+// ========== ENHANCED VERSION: CONNECTED TO GOOGLE APPS SCRIPT ==========
+// PASTE YOUR WEB APP URL BELOW (from Deploy > Manage deployments > Web App)
+const APPS_SCRIPT_URL = "PASTE_SCRIPT_LINK_HERE"; // <-- REPLACE WITH YOUR ACTUAL URL
+
+// VARIABLE REFERENCES
+const clubSection = document.getElementById("clubSection");
+const otherSection = document.getElementById("otherSection");
+const clubBtn = document.getElementById("clubBtn");
+const otherBtn = document.getElementById("otherBtn");
+const staffPhone = document.getElementById("staffPhone");
+const studentPhone = document.getElementById("studentPhone");
+const summary = document.getElementById("summary");
+const eventDate = document.getElementById('eventDate');
+const timeFrom = document.getElementById('timeFrom');
+const timeTo = document.getElementById('timeTo');
+const eventName = document.getElementById('eventName');
+const audienceCapacity = document.getElementById('audienceCapacity');
+const resourcePerson = document.getElementById('resourcePerson');
+const staffName = document.getElementById('staffName');
+const studentName = document.getElementById('studentName');
+const documentUpload = document.getElementById('documentUpload');
+
+// Hall data with seating arrangement details (text only, no visual grid)
+const halls = [
+    { id: 'hall1', name: 'KRT Hall', capacity: 300, location: 'Main Block, Ground Floor', photoLabel: '🏛️ KRT', facilities: 'AC, Projector, Fan', seatingDesc: '20 rows x 15 seats (300 capacity) – Auditorium style' },
+    { id: 'hall2', name: 'Bootstrap Hall', capacity: 60, location: 'IT Park, Room 101', photoLabel: '💻 Bootstrap', facilities: 'Fan only', seatingDesc: '6 rows x 10 seats (60 capacity) – Classroom style' },
+    { id: 'hall3', name: 'Nallusamy Hall', capacity: 250, location: 'Academic Block, 2nd Floor', photoLabel: '📚 Nallysamy', facilities: 'AC, Fan', seatingDesc: '15 rows x 17 seats (approx 250) – tiered' },
+    { id: 'hall4', name: 'Auditorium', capacity: 700, location: 'Central Building', photoLabel: '🎭 Auditorium', facilities: 'AC, Projector, Fan', seatingDesc: '25 rows x 28 seats (700) – tiered with balcony' },
+    { id: 'hall5', name: 'Cauvery Hall', capacity: 500, location: 'River View Campus', photoLabel: '🌊 Cauvery', facilities: 'AC, Projector, Fan', seatingDesc: '20 rows x 25 seats (500) – flat floor' }
+];
+
+// PERSISTENCE (local backup + sync with sheet)
+const STORAGE_KEY = 'hallBookings';
+let bookings = []; // will be populated from server
+
+// Load initial data from Google Sheets
+async function loadBookingsFromSheet() {
+    if (APPS_SCRIPT_URL === "PASTE_SCRIPT_LINK_HERE") {
+        console.warn("Apps Script URL not set; using localStorage fallback.");
+        const stored = localStorage.getItem(STORAGE_KEY);
+        bookings = stored ? JSON.parse(stored) : [];
+        renderBookingsTable(bookings);
+        return;
+    }
+    try {
+        const response = await fetch(APPS_SCRIPT_URL + "?action=getAll", { method: 'GET' });
+        const data = await response.json();
+        if (data.status === 'success' && Array.isArray(data.bookings)) {
+            bookings = data.bookings;
+            // also update local storage as backup
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(bookings));
+        } else {
+            // fallback
+            const stored = localStorage.getItem(STORAGE_KEY);
+            bookings = stored ? JSON.parse(stored) : [];
+        }
+    } catch (e) {
+        console.error("Failed to load from sheet, using localStorage", e);
+        const stored = localStorage.getItem(STORAGE_KEY);
+        bookings = stored ? JSON.parse(stored) : [];
+    }
+    // after loading, refresh any visible table
+    if (document.getElementById('bookingsListContainer').classList.contains('show')) {
+        renderBookingsTable(bookings);
+        populateHallFilter();
+    }
+}
+
+// Save booking to Google Sheets via POST
+async function saveBookingToSheet(bookingData) {
+    if (https://script.google.com/macros/s/AKfycbwCXyG0M0bUByR210jaGp3qOGrUwfkSGHui8pnqLswdgtZSUoxqnzEkDqLCMicTdGIH/exec") {
+        // fallback: local only
+        bookings.push(bookingData);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(bookings));
+        return { status: 'success (local)' };
+    }
+    try {
+        const response = await fetch(https://script.google.com/macros/s/AKfycbwCXyG0M0bUByR210jaGp3qOGrUwfkSGHui8pnqLswdgtZSUoxqnzEkDqLCMicTdGIH/exec, {
+            method: "POST",
+            body: JSON.stringify(bookingData)
+        });
+        const result = await response.json();
+        if (result.status === 'success') {
+            // after successful POST, refresh bookings from server
+            await loadBookingsFromSheet();
+        } else {
+            console.warn("Sheet save failed, storing locally", result);
+            bookings.push(bookingData);
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(bookings));
+        }
+        return result;
+    } catch (error) {
+        console.error("Error saving to sheet, using localStorage", error);
+        bookings.push(bookingData);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(bookings));
+        return { status: 'error', fallback: 'local' };
+    }
+}
+
+// Helper functions
+function toIndianTime(time24) {
+    if (!time24) return '';
+    let [hours, minutes] = time24.split(':').map(Number);
+    let suffix = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12 || 12;
+    return `${hours}:${minutes.toString().padStart(2,'0')} ${suffix}`;
+}
+function toIndianDate(dateStr) {
+    if (!dateStr) return '';
+    let parts = dateStr.split('-');
+    if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    return dateStr;
+}
+function isConflict(hall, date, from, to) {
+    return bookings.some(b => b.hall === hall && b.date === date && (function() {
+        function toMins(t) { let [h,m]=t.split(':'); return parseInt(h)*60 + parseInt(m); }
+        const existFrom = toMins(b.from), existTo = toMins(b.to);
+        const newFrom = toMins(from), newTo = toMins(to);
+        return (newFrom < existTo && newTo > existFrom);
+    })());
+}
+
+// Render hall cards
+function renderHalls() {
+    const container = document.getElementById('hallContainer');
+    container.innerHTML = '';
+    halls.forEach((hall) => {
+        const card = document.createElement('div');
+        card.className = 'hall-card';
+        const radioId = `hall_${hall.id}`;
+        card.innerHTML = `
+            <input type="radio" name="selectedHall" id="${radioId}" value="${hall.name}" data-capacity="${hall.capacity}" data-location="${hall.location}" data-facilities="${hall.facilities}" data-photo="${hall.photoLabel}" data-seating="${hall.seatingDesc}">
+            <label for="${radioId}">
+                <div class="hall-photo">${hall.photoLabel}</div>
+                <div class="hall-name">${hall.name}</div>
+                <div class="hall-capacity">👥 Capacity: ${hall.capacity}</div>
+                <div class="hall-location"><i>📍 ${hall.location}</i></div>
+                <div class="hall-facilities">🔧 ${hall.facilities}</div>
+            </label>
+        `;
+        container.appendChild(card);
+    });
+    document.querySelectorAll('input[name="selectedHall"]').forEach(radio => {
+        radio.addEventListener('change', function() {
+            document.getElementById('detailsBtn').disabled = false;
+            if (window.confirmBtn) updateConfirmButtonState();
+        });
+    });
+}
+renderHalls();
+
+// Filter functions for history
+function populateHallFilter() {
+    const select = document.getElementById('filterHall');
+    if (!select) return;
+    select.innerHTML = '<option value="">All Halls</option>';
+    halls.forEach(h => {
+        const option = document.createElement('option');
+        option.value = h.name;
+        option.textContent = h.name;
+        select.appendChild(option);
+    });
+}
+function getFilteredBookings() {
+    const dateFilter = document.getElementById('filterDate').value;
+    const fromFilter = document.getElementById('filterTimeFrom').value;
+    const toFilter = document.getElementById('filterTimeTo').value;
+    const hallFilter = document.getElementById('filterHall').value;
+    return bookings.filter(b => {
+        if (dateFilter && b.date !== dateFilter) return false;
+        if (fromFilter && b.from !== fromFilter) return false;
+        if (toFilter && b.to !== toFilter) return false;
+        if (hallFilter && b.hall !== hallFilter) return false;
+        return true;
+    });
+}
+function renderBookingsTable(bookingsArray) {
+    const tbody = document.getElementById('bookingsTableBody');
+    const sorted = [...bookingsArray].sort((a,b) => a.date.localeCompare(b.date) || a.from.localeCompare(b.from));
+    tbody.innerHTML = '';
+    sorted.forEach(b => {
+        const row = tbody.insertRow();
+        row.insertCell().textContent = b.hall;
+        row.insertCell().textContent = toIndianDate(b.date);
+        row.insertCell().textContent = toIndianTime(b.from);
+        row.insertCell().textContent = toIndianTime(b.to);
+    });
+}
+function applyFilters() { renderBookingsTable(getFilteredBookings()); }
+function resetFilters() {
+    document.getElementById('filterDate').value = '';
+    document.getElementById('filterTimeFrom').value = '';
+    document.getElementById('filterTimeTo').value = '';
+    document.getElementById('filterHall').value = '';
+    renderBookingsTable(bookings);
+}
+window.toggleBookingsList = async function() {
+    const container = document.getElementById('bookingsListContainer');
+    if (container.classList.contains('show')) {
+        container.classList.remove('show');
+    } else {
+        // refresh from server before showing
+        await loadBookingsFromSheet();
+        populateHallFilter();
+        renderBookingsTable(bookings);
+        container.classList.add('show');
+    }
+}
+
+// Show hall details with seating description (NO visual seat grid)
+function showHallDetails() {
+    const selected = document.querySelector('input[name="selectedHall"]:checked');
+    if (!selected) { alert('Please select a hall first.'); return; }
+    const hallName = selected.value;
+    const hall = halls.find(h => h.name === hallName);
+    if (!hall) return;
+    const box = document.getElementById('hallDetailsBox');
+    
+    document.getElementById('hallDetailsContent').innerHTML = `
+        <div class="detail-item"><i>🏛️</i> <strong>${hall.name}</strong></div>
+        <div class="detail-item"><i>📍</i> ${hall.location}</div>
+        <div class="detail-item"><i>👥</i> Capacity: ${hall.capacity}</div>
+        <div class="detail-item"><i>🔧</i> Facilities: ${hall.facilities}</div>
+        <div class="detail-item"><i>🪑</i> Seating arrangement: ${hall.seatingDesc}</div>
+    `;
+    box.classList.add('show');
+}
+
+// Toggle club/other
+function showClub(){ clubSection.classList.remove("hidden"); otherSection.classList.add("hidden"); clubBtn.classList.add("active"); otherBtn.classList.remove("active"); }
+function showOther(){ clubSection.classList.add("hidden"); otherSection.classList.remove("hidden"); clubBtn.classList.remove("active"); otherBtn.classList.add("active"); }
+
+// Numbers only
+function allowNumbersOnly(input){ input.value = input.value.replace(/\D/g,''); }
+staffPhone.oninput = () => allowNumbersOnly(staffPhone);
+studentPhone.oninput = () => allowNumbersOnly(studentPhone);
+
+// Date check panel
+function toggleDateBookings() {
+    const panel = document.getElementById('dateBookingsPanel');
+    const date = eventDate.value;
+    if (!date) { alert('Please select a date first.'); return; }
+    if (panel.classList.contains('show')) panel.classList.remove('show');
+    else { displayDateBookings(date); panel.classList.add('show'); }
+}
+function displayDateBookings(date) {
+    document.getElementById('selectedDateDisplay').textContent = toIndianDate(date);
+    const filtered = bookings.filter(b => b.date === date);
+    const contentDiv = document.getElementById('dateBookingsContent');
+    if (filtered.length === 0) contentDiv.innerHTML = '<p>No bookings on this date.</p>';
+    else {
+        let html = '<table><thead><tr><th>Hall</th><th>From</th><th>To</th></tr></thead><tbody>';
+        filtered.forEach(b => { html += `<tr><td>${b.hall}</td><td>${toIndianTime(b.from)}</td><td>${toIndianTime(b.to)}</td></tr>`; });
+        html += '</tbody></table>';
+        contentDiv.innerHTML = html;
+    }
+}
+
+// confirmBooking: builds FULL summary table, sends to Google Sheet
+async function confirmBooking(btn) {
+    if (btn.disabled) return;
+    btn.disabled = true;
+
+    const selectedHall = document.querySelector('input[name="selectedHall"]:checked');
+    if (!selectedHall) return;
+    const hallName = selectedHall.value;
+    const date = eventDate.value;
+    const from = timeFrom.value;
+    const to = timeTo.value;
+    const event = eventName.value;
+
+    if (!date || !from || !to || !event) return;
+    if (from >= to) { alert('End time must be after start time.'); btn.disabled = false; return; }
+
+    let oldMsg = summary.querySelector('.unavailable-msg');
+    if (oldMsg) oldMsg.remove();
+
+    if (isConflict(hallName, date, from, to)) {
+        const msgDiv = document.createElement('div');
+        msgDiv.className = 'unavailable-msg';
+        msgDiv.innerText = `⚠️ Hall "${hallName}" is already booked for the selected date and time. Please choose another hall or time slot.`;
+        summary.insertBefore(msgDiv, summary.firstChild);
+        btn.disabled = false;
+        return;
+    }
+
+    const degreeSelected = document.querySelector('input[name="degree"]:checked');
+    const departmentSelected = document.querySelector('input[name="department"]:checked');
+    const club = document.querySelector('input[name="club"]:checked').value;
+    const department = departmentSelected ? departmentSelected.value : '';
+    const staffPhoneVal = staffPhone.value;
+    const staffNameVal = staffName.value;
+
+    // Prepare booking object (include more fields for sheet)
+    const bookingRecord = {
+        hall: hallName,
+        date: date,
+        from: from,
+        to: to,
+        event: eventName.value,
+        department: department,
+        staff: staffNameVal,
+        // optional extra fields
+        degree: degreeSelected ? degreeSelected.value : '',
+        club: club,
+        resource: resourcePerson.value,
+        staffPhone: staffPhoneVal,
+        student: studentName.value,
+        studentPhone: studentPhone.value,
+        capacity: audienceCapacity.value
+    };
+
+    // Send to Google Apps Script (the exact fetch you requested)
+    // Using the APPS_SCRIPT_URL variable set at top
+    await saveBookingToSheet(bookingRecord);
+
+    // Re-check bookings after save (already done inside saveBookingToSheet via loadBookingsFromSheet)
+    // but we also need to update local conflict check for next time.
+
+    const fromIndian = toIndianTime(from);
+    const toIndian = toIndianTime(to);
+    const dateIndian = toIndianDate(date);
+
+    const fullSummaryHTML = `
+        <h3 style="margin-bottom:15px; color:#023E8A;">📝 Event Details (Confirmed)</h3>
+        <table class="summary-table" style="width:100%;">
+            <tr><th>Event</th><td>${eventName.value}</td></tr>
+            <tr><th>Date</th><td>${dateIndian}</td></tr>
+            <tr><th>Time</th><td>${fromIndian} - ${toIndian}</td></tr>
+            <tr><th>Degree</th><td>${degreeSelected ? degreeSelected.value : ''}</td></tr>
+            <tr><th>Department</th><td>${department}</td></tr>
+            <tr><th>Club/Association</th><td>${club}</td></tr>
+            <tr><th>Hall</th><td>${selectedHall.value} (Capacity: ${selectedHall.dataset.capacity})</td></tr>
+            <tr><th>Location</th><td>${selectedHall.dataset.location}</td></tr>
+            <tr><th>Capacity Required</th><td>${audienceCapacity.value}</td></tr>
+            <tr><th>Resource Person</th><td>${resourcePerson.value}</td></tr>
+            <tr><th>Staff Incharge</th><td>${staffNameVal} (${staffPhoneVal})</td></tr>
+            <tr><th>Student Incharge</th><td>${studentName.value} (${studentPhone.value})</td></tr>
+        </table>
+    `;
+
+    document.getElementById('finalBookingMessage').innerHTML = fullSummaryHTML;
+
+    document.getElementById('step2').classList.remove('active-panel');
+    document.getElementById('step3').classList.add('active-panel');
+    document.getElementById('step2Indicator').classList.remove('active');
+    document.getElementById('step3Indicator').classList.add('active');
+
+    const successSummary = document.getElementById('successSummary');
+    successSummary.classList.add('celebrate');
+    setTimeout(() => successSummary.classList.remove('celebrate'), 600);
+}
+
+// Update confirm button state
+function updateConfirmButtonState() {
+    const selectedHall = document.querySelector('input[name="selectedHall"]:checked');
+    if (!selectedHall) return;
+    const hall = selectedHall.value;
+    const date = eventDate.value;
+    const from = timeFrom.value;
+    const to = timeTo.value;
+    if (!date || !from || !to) return;
+    const conflict = isConflict(hall, date, from, to);
+    const confirmBtn = document.getElementById('dynamicConfirmBtn');
+    if (!confirmBtn) return;
+    confirmBtn.disabled = conflict;
+    let msgDiv = document.getElementById('availabilityMsg');
+    if (!msgDiv) {
+        msgDiv = document.createElement('div');
+        msgDiv.id = 'availabilityMsg';
+        msgDiv.className = 'availability-msg';
+        summary.insertBefore(msgDiv, confirmBtn.parentNode);
+    }
+    if (conflict) {
+        msgDiv.textContent = '⚠️ This hall is already booked for the selected date and time. Please choose another.';
+        msgDiv.className = 'availability-msg unavailable';
+    } else {
+        msgDiv.textContent = '✅ This slot is available. You can proceed.';
+        msgDiv.className = 'availability-msg available';
+    }
+}
+
+// Generate Summary
+function generateSummary(){
+    let valid = true;
+    function req(id, errorId){
+        let el = document.getElementById(id);
+        if(!el.value.trim()){ document.getElementById(errorId).style.display = 'block'; valid = false; }
+        else document.getElementById(errorId).style.display = 'none';
+    }
+    req('eventDate','dateError'); req('timeFrom','fromError'); req('timeTo','toError');
+    req('eventName','eventNameError'); req('audienceCapacity','capacityError');
+    req('resourcePerson','resourceError'); req('staffName','staffNameError'); req('studentName','studentNameError');
+
+    if(staffPhone.value.length !== 10){ staffPhoneError.style.display = 'block'; valid = false; } else staffPhoneError.style.display = 'none';
+    if(studentPhone.value.length !== 10){ studentPhoneError.style.display = 'block'; valid = false; } else studentPhoneError.style.display = 'none';
+
+    let degreeSelected = document.querySelector('input[name="degree"]:checked');
+    if(!degreeSelected){ degreeError.style.display = 'block'; valid = false; } else degreeError.style.display = 'none';
+
+    let departmentSelected = document.querySelector('input[name="department"]:checked');
+    if(!departmentSelected){ departmentError.style.display = 'block'; valid = false; } else departmentError.style.display = 'none';
+
+    if(documentUpload.files.length === 0){ documentError.style.display = 'block'; valid = false; } else documentError.style.display = 'none';
+
+    let selectedHall = document.querySelector('input[name="selectedHall"]:checked');
+    if(!selectedHall){ document.getElementById('hallError').style.display = 'block'; valid = false; } else document.getElementById('hallError').style.display = 'none';
+
+    if(!valid) return;
+
+    let club = document.querySelector('input[name="club"]:checked').value;
+    let department = departmentSelected.value;
+    let hallLocation = selectedHall.dataset.location;
+    let hallCapacity = selectedHall.dataset.capacity;
+    const fromIndian = toIndianTime(timeFrom.value);
+    const toIndian = toIndianTime(timeTo.value);
+    const dateIndian = toIndianDate(eventDate.value);
+
+    summary.innerHTML = `
+        <h3>📝 Event Details</h3>
+        <table class="summary-table">
+            <tr><th>Event</th><td>${eventName.value}</td></tr>
+            <tr><th>Date</th><td>${dateIndian}</td></tr>
+            <tr><th>Time</th><td>${fromIndian} - ${toIndian}</td></tr>
+            <tr><th>Degree</th><td>${degreeSelected.value}</td></tr>
+            <tr><th>Department</th><td>${department}</td></tr>
+            <tr><th>Club/Association</th><td>${club}</td></tr>
+            <tr><th>Hall</th><td>${selectedHall.value} (Capacity: ${hallCapacity})</td></tr>
+            <tr><th>Location</th><td>${hallLocation}</td></tr>
+            <tr><th>Capacity Required</th><td>${audienceCapacity.value}</td></tr>
+            <tr><th>Resource Person</th><td>${resourcePerson.value}</td></tr>
+            <tr><th>Staff Incharge</th><td>${staffName.value} (${staffPhone.value})</td></tr>
+            <tr><th>Student Incharge</th><td>${studentName.value} (${studentPhone.value})</td></tr>
+        </table>
+        <div id="availabilityMsg" class="availability-msg"></div>
+        <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+            <button class="print-btn" style="background:#4caf50;" id="dynamicConfirmBtn">✅ Confirm & Submit</button>
+        </div>
+    `;
+
+    const confirmBtn = document.getElementById('dynamicConfirmBtn');
+    confirmBtn.onclick = function() { confirmBooking(this); };
+    window.confirmBtn = confirmBtn;
+
+    const inputs = [eventDate, timeFrom, timeTo, ...document.querySelectorAll('input[name="selectedHall"]')];
+    inputs.forEach(inp => inp.addEventListener('change', updateConfirmButtonState));
+    updateConfirmButtonState();
+}
+
+// Step navigation
+function goToStep2() {
+    let basicValid = true;
+    function basicReq(id, errorId) {
+        let el = document.getElementById(id);
+        if (!el.value.trim()) { document.getElementById(errorId).style.display = 'block'; basicValid = false; }
+        else document.getElementById(errorId).style.display = 'none';
+    }
+    basicReq('eventDate','dateError'); basicReq('timeFrom','fromError'); basicReq('timeTo','toError');
+    basicReq('eventName','eventNameError'); basicReq('audienceCapacity','capacityError');
+    basicReq('resourcePerson','resourceError'); basicReq('staffName','staffNameError'); basicReq('studentName','studentNameError');
+
+    if(staffPhone.value.length !== 10){ staffPhoneError.style.display = 'block'; basicValid = false; } else staffPhoneError.style.display = 'none';
+    if(studentPhone.value.length !== 10){ studentPhoneError.style.display = 'block'; basicValid = false; } else studentPhoneError.style.display = 'none';
+
+    let degreeSelected = document.querySelector('input[name="degree"]:checked');
+    if(!degreeSelected){ degreeError.style.display = 'block'; basicValid = false; } else degreeError.style.display = 'none';
+
+    let departmentSelected = document.querySelector('input[name="department"]:checked');
+    if(!departmentSelected){ departmentError.style.display = 'block'; basicValid = false; } else departmentError.style.display = 'none';
+
+    if(documentUpload.files.length === 0){ documentError.style.display = 'block'; basicValid = false; } else documentError.style.display = 'none';
+
+    if (!basicValid) return;
+    document.getElementById('step1').classList.remove('active-panel');
+    document.getElementById('step2').classList.add('active-panel');
+    document.getElementById('step1Indicator').classList.remove('active');
+    document.getElementById('step2Indicator').classList.add('active');
+}
+function goToStep1() {
+    document.getElementById('step2').classList.remove('active-panel');
+    document.getElementById('step3').classList.remove('active-panel');
+    document.getElementById('step1').classList.add('active-panel');
+    document.getElementById('step2Indicator').classList.remove('active');
+    document.getElementById('step3Indicator').classList.remove('active');
+    document.getElementById('step1Indicator').classList.add('active');
+}
+
+// Initial load from server
+loadBookingsFromSheet();
+
+// Expose globals
+window.showClub = showClub; window.showOther = showOther; window.generateSummary = generateSummary;
+window.confirmBooking = confirmBooking; window.showHallDetails = showHallDetails; window.goToStep1 = goToStep1;
+window.goToStep2 = goToStep2; window.toggleBookingsList = toggleBookingsList; window.updateConfirmButtonState = updateConfirmButtonState;
+window.toggleDateBookings = toggleDateBookings; window.applyFilters = applyFilters; window.resetFilters = resetFilters;
+</script>
+
+</body>
+</html>
